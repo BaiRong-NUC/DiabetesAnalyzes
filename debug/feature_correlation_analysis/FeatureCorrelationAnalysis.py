@@ -63,6 +63,7 @@ print(age_group_stats)
 # 特征相关性分析
 print("\n特征相关性分析:")
 # axis=1 表示按列删除；axis=0 表示按行删除
+# corr 是 pandas 的方法，用来计算列之间的成对相关系数(默认是 Pearson 相关系数)
 correlation_matrix = df_clean.drop('Age_Group', axis=1).corr()
 
 # 保存完整的相关性矩阵到文件，方便用 Excel 或其它工具查看
