@@ -217,3 +217,15 @@ X_train_clinical = build_clinical_interaction(X_train_final, best_features)
 X_test_clinical = build_clinical_interaction(X_test_final, best_features)
 print(f"\n构建临床交互后训练集形状: {X_train_clinical.shape}")
 print(f"最终输入特征: {X_train_clinical.columns.tolist()}")
+
+# 适配深度学习输入格式
+'''
+X_train_clinical(pandas.DataFrame).shape[1]:特征维度（输入层神经元数量）
+X_train_np是纯数值矩阵、无列名但更接近深度学习框架的输入格式
+'''
+input_dim = X_train_clinical.shape[1]
+print(f"输入层维度（特征数）: {input_dim}")
+X_train_np = X_train_clinical.values
+print(f"训练集输入格式: {type(X_train_np)}, 形状: {X_train_np.shape}")
+X_test_np = X_test_clinical.values
+print(f"测试集输入格式: {type(X_test_np)}, 形状: {X_test_np.shape}")
