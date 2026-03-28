@@ -121,7 +121,10 @@ plt.show()
 # 4.3 相关性热力图（临床特征关联性）
 plt.figure(figsize=(10, 8))
 corr = df.corr()
-sns.heatmap(corr, annot=True, cmap='coolwarm', fmt='.2f')
+# 限定色阶为 [-1, 1]，并以 0 为中心，适合相关系数矩阵
+sns.heatmap(corr.clip(-1, 1), annot=True, cmap='coolwarm', fmt='.2f',
+            vmin=-1, vmax=1, center=0,
+            cbar_kws={'ticks': [-1, -0.5, 0, 0.5, 1]})
 plt.title('特征相关性热力图')
 heatmap_path = os.path.join(plot_dir, 'correlation_heatmap.png')
 plt.savefig(heatmap_path, dpi=300, bbox_inches='tight')
