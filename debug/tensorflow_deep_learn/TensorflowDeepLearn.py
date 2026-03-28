@@ -196,3 +196,24 @@ print(f"✅ 最优特征子集: {best_features}")
 X_train_final = X_train[best_features]
 X_test_final = X_test[best_features]
 print(f"筛选后特征数: {len(best_features)}")
+
+# ===================== 6. 结合T2DM临床机制构建特征交互项(升维) =====================
+# 临床公认交互：胰岛素抵抗(Glucose×BMI)、年龄代谢(Age×BMI)、血糖血压联合作用
+def build_clinical_interaction(X, features):
+    X_inter = X.copy()
+    # 1. 血糖 × BMI（T2DM核心致病交互）
+    if 'Glucose' in features and 'BMI' in features:
+        X_inter['Glucose_BMI'] = X['Glucose'] * X['BMI']
+    # 2. 年龄 × BMI（中老年肥胖风险）
+    if 'Age' in features and 'BMI' in features:
+        X_inter['Age_BMI'] = X['Age'] * X['BMI']
+    # 3. 血糖 × 血压（代谢综合征核心）
+    if 'Glucose' in features and 'BloodPressure' in features:
+        X_inter['Glucose_BP'] = X['Glucose'] * X['BloodPressure']
+    return X_inter
+
+# 构建交互特征
+X_train_clinical = build_clinical_interaction(X_train_final, best_features)
+X_test_clinical = build_clinical_interaction(X_test_final, best_features)
+print(f"\n构建临床交互后训练集形状: {X_train_clinical.shape}")
+print(f"最终输入特征: {X_train_clinical.columns.tolist()}")
