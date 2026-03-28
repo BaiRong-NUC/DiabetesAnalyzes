@@ -6,6 +6,83 @@ from sklearn.feature_selection import SelectKBest, f_classif, mutual_info_classi
 from sklearn.ensemble import RandomForestClassifier
 import warnings
 warnings.filterwarnings('ignore')
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
+import matplotlib.font_manager as fm
+
+# 更稳健地加载中文字体：优先使用系统微软雅黑，如不存在则使用候选回退
+# 尝试按优先级找到一个可用中文字体，并创建 FontProperties 供绘图时使用
+ch_font = None
+
+# 常见系统中文字体文件路径优先尝试（Windows）
+common_paths = [
+    r'C:\Windows\Fonts\msyh.ttf',
+    r'C:\Windows\Fonts\msyh.ttf',
+    r'C:\Windows\Fonts\simhei.ttf',
+    r'C:\Windows\Fonts\simsun.ttc',
+    r'C:\Windows\Fonts\simsun.ttf',
+    r'C:\Windows\Fonts\STFANGSO.ttf'
+]
+
+def try_set_font_from_path(path):
+    if path and os.path.exists(path):
+        try:
+            fp = fm.FontProperties(fname=path)
+            name = fp.get_name()
+            plt.rcParams['font.family'] = name
+            plt.rcParams['font.sans-serif'] = [name]
+            return fp
+        except Exception:
+            return None
+    return None
+
+for p in common_paths:
+    ch_font = try_set_font_from_path(p)
+    if ch_font is not None:
+        break
+
+if ch_font is None:
+    # 根据已安装字体列表匹配常见中文字体名或文件名
+    tokens = ['microsoft yahei', 'msyh', 'simhei', 'simsun', 'fangsong', 'kai', 'wqy', 'noto']
+    for f in fm.fontManager.ttflist:
+        fname_l = (f.fname or '').lower()
+        name_l = (f.name or '').lower()
+        for t in tokens:
+            if t in fname_l or t in name_l:
+                try:
+                    ch_font = fm.FontProperties(fname=f.fname)
+                    name = ch_font.get_name()
+                    plt.rcParams['font.family'] = name
+                    plt.rcParams['font.sans-serif'] = [name]
+                    break
+                except Exception:
+                    ch_font = None
+        if ch_font is not None:
+            break
+
+if ch_font is None:
+    # 最后尝试使用 findfont 查找已知字体族
+    family_candidates = ['Microsoft YaHei', 'SimHei', 'SimSun', 'WenQuanYi Zen Hei', 'Noto Sans CJK SC']
+    for fam in family_candidates:
+        try:
+            font_path = fm.findfont(fam, fallback_to_default=False)
+            if font_path and os.path.exists(font_path):
+                ch_font = fm.FontProperties(fname=font_path)
+                name = ch_font.get_name()
+                plt.rcParams['font.family'] = name
+                plt.rcParams['font.sans-serif'] = [name]
+                break
+        except Exception:
+            continue
+
+if ch_font is None:
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
+    print('警告：未找到可用中文字体，中文可能无法正确显示。')
+
+# 关闭负号被显示为方块的问题
+plt.rcParams['axes.unicode_minus'] = False
 
 # 重新加载数据
 df = pd.read_csv('./diabetes.csv')
@@ -76,3 +153,36 @@ print(correlation_matrix['Outcome'].sort_values(ascending=False))
 
 print("\n与Age的相关性:")
 print(correlation_matrix['Age'].sort_values(ascending=False))
+
+# 从保存的 CSV 读取相关矩阵并画热力图
+corr_csv_path = './debug/feature_correlation_analysis/correlation_matrix_full.csv'
+heatmap_path = './debug/feature_correlation_analysis/correlation_matrix_heatmap.png'
+corr = pd.read_csv(corr_csv_path, index_col=0)
+plt.figure(figsize=(10, 8))
+sns.set(font_scale=0.9)
+ax = sns.heatmap(
+    corr,
+    annot=True,
+    fmt='.2f',
+    annot_kws={'fontsize':10, 'fontproperties': ch_font} if ch_font is not None else {'fontsize':10},
+    cmap='coolwarm',
+    vmin=-1,
+    vmax=1,
+    linewidths=0.5,
+    linecolor='white',
+    square=True,
+    cbar_kws={'shrink': 0.8}
+)
+# 标题和刻度显式使用已找到的中文字体，避免方块或缺字
+if ch_font is not None:
+    ax.set_title('特征相关性热力图', fontproperties=ch_font, fontsize=14)
+    ax.set_yticklabels(ax.get_yticklabels(), fontproperties=ch_font)
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right', fontproperties=ch_font)
+else:
+    ax.set_title('特征相关性热力图', fontsize=14)
+    plt.yticks(rotation=0)
+    plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
+plt.savefig(heatmap_path, dpi=300)
+print(f"已保存热力图到: {heatmap_path}")
+plt.show()
