@@ -73,6 +73,11 @@ X_scaled = scaler.fit_transform(X)
 X_scaled = pd.DataFrame(X_scaled, columns=feature_names)
 
 # 训练集/测试集划分（8:2）
+'''
+test_size=0.2:将20%的数据作为测试集，80%作为训练集。
+random_state=42:可复现随机打乱
+stratify=y:保持训练集和测试集中目标变量的分布一致，适用于不平衡数据集
+'''
 X_train, X_test, y_train, y_test = train_test_split(
     X_scaled, y, test_size=0.2, random_state=42, stratify=y
 )
@@ -135,3 +140,59 @@ plt.show()
 # 目标：剔除冗余/噪声特征，保留T2DM高相关关键指标
 print("\n===== 两种RFE特征筛选 =====")
 
+'''
+RFE 概念:
+使用 RFE（递归特征消除）按模型重要性反复剔除最不重要的特征，直到剩下指定数量（代码中 n_features_to_select=6）。
+每次基于所用估计器（如 LogisticRegression 或 XGBClassifier）
+计算特征权重/重要性，RFE.fit() 后可通过 support_ 得到被保留的特征索引。
+'''
+
+
+# 方法1：RFE + 逻辑回归（线性基准）
+# 用某估计器递归筛到 6 个特征。
+'''
+RFE筛选流程
+1. 用当前特征集训练基估计器（如线性模型或树）。
+2. 依据估计器给出的重要性（线性模型的系数绝对值或树的 feature_importances_）为每个特征打分。
+    打分标准: 不同的模型不同 - 线性模型：特征系数的绝对值（|coef|）越大，重要性越高；树模型：特征重要性（feature_importances_）越高，重要性越高。
+3. 删除得分最低的特征(默认每次删 1 个，可通过 step 参数加速删除多个)
+4. 用剩余特征重复步骤 1-3,直到达到 n_features_to_select
+'''
+rfe_lr = RFE(estimator=LogisticRegression(max_iter=1000), n_features_to_select=6)
+# 在训练集上拟合并返回降维后的训练数据。
+X_rfe_lr = rfe_lr.fit_transform(X_train, y_train)
+lr_selected = [feature_names[i] for i in np.where(rfe_lr.support_)[0]] # 获取被选中特征的名称列表
+# 打印逻辑回归 RFE 在最终保留特征上的重要性（绝对系数）
+try:
+    lr_coef = np.abs(rfe_lr.estimator_.coef_).ravel()
+    lr_idx = np.where(rfe_lr.support_)[0]
+    print("Logistic RFE - selected feature importances (abs coef):")
+    for idx, val in zip(lr_idx, lr_coef):
+        print(f"  {feature_names[idx]}: {val:.4f}")
+except Exception as e:
+    print("无法打印 Logistic RFE 系数:", e)
+
+# 方法2：RFE + XGBoost（树模型基准，更适配医疗数据）
+rfe_xgb = RFE(estimator=XGBClassifier(random_state=42), n_features_to_select=6)
+X_rfe_xgb = rfe_xgb.fit_transform(X_train, y_train)
+xgb_selected = [feature_names[i] for i in np.where(rfe_xgb.support_)[0]]
+# 打印 XGBoost RFE 在最终保留特征上的重要性
+try:
+    xgb_imp = rfe_xgb.estimator_.feature_importances_
+    xgb_idx = np.where(rfe_xgb.support_)[0]
+    print("XGBoost RFE - selected feature importances:")
+    for idx, val in zip(xgb_idx, xgb_imp):
+        print(f"  {feature_names[idx]}: {val:.4f}")
+except Exception as e:
+    print("无法打印 XGBoost RFE 特征重要性:", e)
+
+# 取交集 → 最优临床特征子集（高稳定性）
+best_features = list(set(lr_selected) & set(xgb_selected))
+print(f"逻辑回归RFE选中特征: {lr_selected}")
+print(f"XGBoost RFE选中特征: {xgb_selected}")
+print(f"✅ 最优特征子集: {best_features}")
+
+# 筛选最终特征
+X_train_final = X_train[best_features]
+X_test_final = X_test[best_features]
+print(f"筛选后特征数: {len(best_features)}")
