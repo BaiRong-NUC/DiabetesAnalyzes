@@ -188,13 +188,6 @@ probability=True 会降低训练速度并增加内存开销；若只关心决策
 若数据量大且只需线性决策边界，考虑 LinearSVC（不支持 predict_proba）或 SGDClassifier（可用 loss='hinge' 或 log）。
 由于 SVM 对特征尺度非常敏感，必须先做标准化 StandardScaler。
 
-超参数（hyperparameter）是在训练前设置的模型配置项，不由训练数据直接学习得到。
-超参数调优就是通过系统方法寻找一组最优的超参数，使模型在指定评估指标上表现最好
-    - 网格搜索（Grid Search）：穷举指定参数组合，配合交叉验证评估。
-    - 随机搜索（Randomized Search）：随机采样参数空间，效率更高（高维时）。
-    - 贝叶斯优化（Bayesian Optimization）：基于先验/后验模型智能选择候选参数。
-    - 进化算法、超带宽搜索等更高级方法。
-
 适合小到中等规模的数据集，二分类问题效果好；在特征维度较高（如文本、基因组）且样本数量相对较少时表现优异
 因为它能在高维空间找到分隔超平面,当类别非常多时，通常更推荐树模型或线性方法
 '''
@@ -234,15 +227,73 @@ print(f"\n最佳AUC模型: {best_auc_model['model']} (AUC: {best_auc_model['auc'
 print(f"最佳F1分数模型: {best_f1_model['model']} (F1: {best_f1_model['f1_score']:.4f})")
 print(f"最佳准确率模型: {best_acc_model['model']} (准确率: {best_acc_model['accuracy']:.4f})")
 
-# 准备模型调参 - XGBoost调参
+# 准备模型调参 - XGBoost超参调优
+'''
+功能定位：
+sklearn (sklearn.ensemble)：是一个涵盖多种传统机器学习算法（回归、分类、聚类、降维等）的通用框架。
+XGBoost (xgboost.sklearn)：专专注于梯度提升（Gradient Boosting）决策树的高效工具库。
+接口一致性：xgboost.sklearn.XGBClassifier 或 XGBRegressor 完全遵循 sklearn 的 Estimator API 规范
+    可以直接在 Pipeline 或 GridSearchCV 中使用。
+xgboost.sklearn 下的XGBClassifier
+
+超参数（hyperparameter）是在训练前设置的模型配置项，不由训练数据直接学习得到。
+超参数调优就是通过系统方法寻找一组最优的超参数，使模型在指定评估指标上表现最好
+    - 网格搜索（Grid Search）：穷举指定参数组合，配合交叉验证评估。
+    - 随机搜索（Randomized Search）：随机采样参数空间，效率更高（高维时）。
+    - 贝叶斯优化（Bayesian Optimization）：基于先验/后验模型智能选择候选参数。
+    - 进化算法、超带宽搜索等更高级方法。
+
+n_estimators: 弱分类器的数量。
+booster：用于指定弱学习器的类型，默认值为 ‘gbtree’，表示使用基于树的模型进行计算。还可以选择为 ‘gblinear’ 表示使用线性模型作为弱学习器。
+learning_rate：指定学习率。默认值为0.3。推荐的候选值为：[0.01, 0.015, 0.025, 0.05, 0.1]。实现shrinkage的参数，论文中描述：shrinkage reduces the influence of each individual tree and leaves space for future trees to improve the model。（降低一颗树在模型中的影响）
+gamma：指定叶节点进行分支所需的损失减少的最小值，默认值为0。设置的值越大，模型就越保守。推荐的候选值为：[0, 0.05 ~ 0.1, 0.3, 0.5, 0.7, 0.9, 1]。每一次分裂时，都会计算损失减少值，如果最大的减少值依然少于gamma，则不分裂，可以避免过拟合。
+reg_alpha：L1正则化权重项，增加此值将使模型更加保守。推荐的候选值为：[0, 0.01~0.1, 1]
+reg_lambda：L2正则化权重项，增加此值将使模型更加保守。推荐的候选值为：[0, 0.1, 0.5, 1]
+max_depth：指定树的最大深度，默认值为6，合理的设置可以防止过拟合。[3, 5, 6, 7, 9, 12]。
+min_child_weight：就是叶子上的最小样本数。推荐的候选值为：。[1, 3, 5, 7]
+colsample_bytree: 列采样比例。在构建一棵树时，会采样一个特征集合，采样比例通过colsample_bytree控制，默认为1，即使用全部特征。
+'''
+
+'''
+线性模型可以超参:
+penalty: 正则化类型（'l1','l2','elasticnet','none'，不同 solver 支持不同选项）
+C: 正则化强度的倒数（越小正则化越强，常用对数刻度搜索）。初始可用 [1e-3, 1e3] 粗调，再细化
+solver: 求解器（常用 'lbfgs','liblinear','saga','newton-cg'，与 penalty 有兼容性约束）。
+max_iter: 最大迭代次数。默认 100–1000；若出现收敛警告，增大到 1000–5000。
+tol: 收敛阈值。常用 1e-4（默认）到 1e-6（更严格）
+class_weight: 处理类别不平衡（None 或 'balanced' 或字典）。
+fit_intercept: 是否学习截距（True/False）。通常 True（除非数据已中心化）
+warm_start: 是否热启动（对增量调参有用）。
+l1_ratio: 仅当 penalty='elasticnet' 且 solver='saga' 时有效（L1/L2 比例）。
+dual: 在特殊 solver/问题下使用（通常不常用）。
+random_state: 某些 solver（如 saga）的随机种子。
+'''
 print("\n=== XGBoost模型调参 ===")
 param_grid = {
-    'n_estimators': [50, 100, 200],
-    'max_depth': [3, 5, 7],
-    'learning_rate': [0.01, 0.1, 0.2],
-    'subsample': [0.8, 0.9, 1.0]
-}
+    'n_estimators': [50, 100, 200], # 弱学习器（树）的数量；值越大训练更充分但更慢、易过拟合
+    'max_depth': [3, 5, 7], # 树的最大深度；值越大模型越复杂，可能过拟合
+    'learning_rate': [0.01, 0.1, 0.2], # 学习率；值越小训练越慢但更稳健
+    'subsample': [0.8, 0.9, 1.0] # 每棵树训练样本的比例；值越小增加随机性，防止过拟合
+} # 组合构成穷举网格，GridSearchCV 会尝试所有组合。
 
+'''
+estimator: 使用的是 xgb.XGBClassifier
+cv=5: 5 折交叉验证（默认是普通 KFold）；
+    将训练集分成 5 份（每份约为训练集的 20%）；每次用 4 份做训练、1 份做验证，循环 5 次，覆盖所有子集作为验证集。
+    对每组超参数组合计算 5 次验证得分，取平均作为该组合的交叉验证得分，用于比较和选择最优参数。
+    在分类任务中，sklearn 对 cv=int 会自动使用分层折（StratifiedKFold），以保持每折中各类比例接近总体比例。
+    优点：更稳定、鲁棒的性能估计；缺点：计算成本约为训练次数的 5 倍。
+    可替换为其它策略（例如 cv=StratifiedKFold(n_splits=5)、更大/更小的 n_splits 或 RandomizedSearchCV）
+    根据数据量和计算资源调整。
+scoring='f1': scoring='f1' 告诉 GridSearchCV 用 F1 分数作为超参数组合优劣的评价指标（交叉验证时计算并取平均）
+    最终选择使该指标最大的参数组合
+    F1分数=2*(precision*recall)/(precision+recall) 精确率和召回率的调和平均，综合两者性能
+
+n_jobs=-1: 并行化所有可用 CPU 核心加速搜索。可以根据机器资源调整
+
+GridSearchCV 默认会在内层用训练折做验证并在所有候选上计算交叉验证得分
+最后 refit=True（默认）会用整个训练集训练出 best_estimator_
+'''
 grid_search = GridSearchCV(
     estimator=xgb.XGBClassifier(random_state=42, use_label_encoder=False, eval_metric='logloss'),
     param_grid=param_grid,
