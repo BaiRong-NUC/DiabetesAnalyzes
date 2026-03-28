@@ -121,7 +121,7 @@ plt.tight_layout()
 boxplot_path = os.path.join(plot_dir, 'boxplots_by_outcome.png')
 plt.savefig(boxplot_path, dpi=300, bbox_inches='tight')
 print(f"箱线图已保存至: {boxplot_path}")
-plt.show()
+# plt.show()
 
 # 4.3 相关性热力图（临床特征关联性）
 plt.figure(figsize=(10, 8))
@@ -134,7 +134,7 @@ plt.title('特征相关性热力图')
 heatmap_path = os.path.join(plot_dir, 'correlation_heatmap.png')
 plt.savefig(heatmap_path, dpi=300, bbox_inches='tight')
 print(f"相关性热力图已保存至: {heatmap_path}")
-plt.show()
+# plt.show()
 
 # ===================== 5. 双递归特征消除(RFE)筛选最优特征子集 =====================
 # 目标：剔除冗余/噪声特征，保留T2DM高相关关键指标
@@ -229,3 +229,31 @@ X_train_np = X_train_clinical.values
 print(f"训练集输入格式: {type(X_train_np)}, 形状: {X_train_np.shape}")
 X_test_np = X_test_clinical.values
 print(f"测试集输入格式: {type(X_test_np)}, 形状: {X_test_np.shape}")
+
+
+# ===================== 7. 模型构建：基准模型 + 2个指定深度学习模型 =====================
+# 通用评估函数
+def evaluate_model(y_true, y_pred, y_pred_proba, model_name):
+    auc = roc_auc_score(y_true, y_pred_proba)
+    f1 = f1_score(y_true, y_pred)
+    precision = precision_score(y_true, y_pred)
+    recall = recall_score(y_true, y_pred)
+    acc = np.mean(y_true == y_pred)
+    res = {
+        '模型': model_name, '准确率': round(acc,4), 'AUC': round(auc,4),
+        'F1': round(f1,4), '精确率': round(precision,4), '召回率': round(recall,4)
+    }
+    return res
+
+results = []
+
+# -------------------- 基准模型：XGBoost（强基准） -------------------- 
+# 只用了传统机器学习（XGBoost）
+xgb_base = XGBClassifier(random_state=42)
+xgb_base.fit(X_train_clinical, y_train)
+y_pred_xgb = xgb_base.predict(X_test_clinical)
+y_pred_proba_xgb = xgb_base.predict_proba(X_test_clinical)[:,1]
+results.append(evaluate_model(y_test, y_pred_xgb, y_pred_proba_xgb, 'XGBoost基准'))
+
+print("\n基准模型评估结果:")
+print(results[0])
