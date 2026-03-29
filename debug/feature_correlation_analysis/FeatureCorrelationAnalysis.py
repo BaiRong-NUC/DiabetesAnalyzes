@@ -186,3 +186,51 @@ plt.tight_layout()
 plt.savefig(heatmap_path, dpi=300)
 print(f"已保存热力图到: {heatmap_path}")
 plt.show()
+
+# 为每列绘制数值分布的柱状图并保存
+output_dir = './debug/feature_correlation_analysis/column_distributions'
+os.makedirs(output_dir, exist_ok=True)
+
+for col in df_clean.columns:
+    # 跳过辅助分组列（如果存在）
+    if col == 'Age_Group':
+        continue
+    plt.figure(figsize=(8, 6))
+    if pd.api.types.is_numeric_dtype(df_clean[col]):
+        unique_vals = df_clean[col].nunique()
+        # 对离散或取值较少的数值列直接计数绘图
+        if unique_vals <= 20:
+            counts = df_clean[col].value_counts().sort_index()
+            counts.plot(kind='bar', color='C0')
+            xlabel = col
+            title = f"{col} 值分布"
+        else:
+            # 连续型变量按 10 个箱分箱后绘制柱状图
+            binned = pd.cut(df_clean[col], bins=10)
+            counts = binned.value_counts().sort_index()
+            counts.plot(kind='bar', color='C0')
+            xlabel = f"{col} (分箱)"
+            title = f"{col} 值分布（分箱）"
+    else:
+        counts = df_clean[col].value_counts()
+        counts.plot(kind='bar', color='C0')
+        xlabel = col
+        title = f"{col} 值分布"
+
+    if ch_font is not None:
+        plt.xlabel(xlabel, fontproperties=ch_font)
+        plt.ylabel('计数', fontproperties=ch_font)
+        plt.title(title, fontproperties=ch_font)
+        plt.xticks(rotation=45, ha='right', fontproperties=ch_font)
+    else:
+        plt.xlabel(xlabel)
+        plt.ylabel('count')
+        plt.title(title)
+        plt.xticks(rotation=45, ha='right')
+
+    plt.tight_layout()
+    savef = os.path.join(output_dir, f"{col}_distribution.png")
+    plt.savefig(savef, dpi=200)
+    plt.close()
+
+print(f"已保存每列分布柱状图到: {output_dir}")
