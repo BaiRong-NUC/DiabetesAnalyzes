@@ -312,7 +312,7 @@ def build_inception_lstm(input_dim):
     Conv1D(32,1) 参数 = 1*8*32 + 32 = 288
     Conv1D(32,3) 参数 = 3*8*32 + 32 = 800
     Conv1D(32,5) 参数 = 5*8*32 + 32 = 1296
-    每个分支输出形状：(batch, timesteps, 32)
+    每个分支输出形状：(batch_size, timesteps, 32)
 
     这段卷积在“学什么”
     k=1 学单特征位置的线性变换（更像逐位置通道投影）
@@ -324,24 +324,24 @@ def build_inception_lstm(input_dim):
     branch1 = layers.Conv1D(32, 1, padding='same', activation='relu')(x)
     branch2 = layers.Conv1D(32, 3, padding='same', activation='relu')(x)
     branch3 = layers.Conv1D(32, 5, padding='same', activation='relu')(x)
-    # 沿通道维拼接，结果形状 (batch, timesteps, 32*3)，即 (batch,8,96) 96个通道
+    # 沿通道维拼接，结果形状 (batch_size, timesteps, 32*3)，即 (batch_size,8,96) 96个通道
     concat = layers.concatenate([branch1, branch2, branch3], axis=-1)
     
     # RNN层
     # LSTM提取时序特征
     '''
     建一个有 64 个隐藏单元的 LSTM 层,return_sequences=False 表示只输出最后一个时刻的隐藏状态
-    输出形状为 (batch, 64)，然后接全连接层做分类。
+    输出形状为 (batch_size, 64)，然后接全连接层做分类。
     前面提取的“局部模式”进一步整合成一个全局表示
-    LSTM 确实顺序读了 1 到 8 步。
+    LSTM 顺序读了 1 到 8 步。
     return_sequences=False 时，输出的是最后时刻的隐藏状态 h8。
     这个 h8 不是“第8步原始输入 x8”，而是融合了前面 1 到 8 步信息后的摘要。
     '''
     lstm = layers.LSTM(64, return_sequences=False)(concat)
 
     # 全连接层
-    # 对输入做线性变换 z = xW + b 并经过激活函数，学习特征组合映射
-    # kernel_regularizer=regularizers.l2(0.01) 在权重上加 L2 惩罚，抑制过拟合。输出形状为 (batch, 32)。
+    # 对输入做线性变换 z = xW + b 使用 ReLU 激活函数，引入非线性，学习特征组合映射
+    # kernel_regularizer=regularizers.l2(0.01) 在权重上加 L2 惩罚，抑制过拟合。输出形状为 (batch_size, 32)。
     dense = layers.Dense(32, activation='relu', kernel_regularizer=regularizers.l2(0.01))(lstm)
     '''
     Dropout(0.3) 在训练时随机丢弃 30% 神经元，减少共适应，作为正则化手段,一般为30%-50%
