@@ -1,0 +1,46 @@
+{
+  "model_name": "Inception-LSTM",
+  "framework": "keras",
+  "base_feature_names": [
+    "Pregnancies",
+    "Glucose",
+    "BloodPressure",
+    "SkinThickness",
+    "Insulin",
+    "BMI",
+    "DiabetesPedigreeFunction",
+    "Age"
+  ],
+  "selected_base_features": [
+    "Insulin",
+    "BMI",
+    "Pregnancies",
+    "DiabetesPedigreeFunction",
+    "Glucose",
+    "Age"
+  ],
+  "artifact_dir": "artifacts",
+  "preprocessor_path": "preprocessor.joblib",
+  "threshold": 0.5,
+  "example_input_columns": [
+    "Pregnancies",
+    "Glucose",
+    "BloodPressure",
+    "SkinThickness",
+    "Insulin",
+    "BMI",
+    "DiabetesPedigreeFunction",
+    "Age"
+  ],
+  "final_input_columns": [
+    "Insulin",
+    "BMI",
+    "Pregnancies",
+    "DiabetesPedigreeFunction",
+    "Glucose",
+    "Age",
+    "Glucose_BMI",
+    "Age_BMI"
+  ],
+  "model_path": "diabetes_model.keras"
+}
