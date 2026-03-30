@@ -1045,11 +1045,22 @@
                 // 圆环动画
                 const ring = document.getElementById("ring-fill");
                 ring.className = `ring-fill ${cls}`;
-                ring.style.strokeDasharray = RING_C;
-                ring.style.strokeDashoffset = RING_C; // 从 0 开始
+                // 使用 SVG 属性而不是 style，这在某些浏览器/平台上更可靠
+                ring.setAttribute("stroke-dasharray", String(RING_C));
+                ring.setAttribute("stroke-dashoffset", String(RING_C)); // 从 0 开始
+                ring.setAttribute("stroke-linecap", "round");
+                // 明确设置 stroke 为对应的 gradient，避免样式解析问题
+                if (isDanger) {
+                    ring.setAttribute("stroke", "url(#dangerGrad)");
+                } else {
+                    ring.setAttribute("stroke", "url(#safeGrad)");
+                }
                 requestAnimationFrame(() =>
                     requestAnimationFrame(() => {
-                        ring.style.strokeDashoffset = RING_C * (1 - prob);
+                        ring.setAttribute(
+                            "stroke-dashoffset",
+                            String(RING_C * (1 - prob)),
+                        );
                     }),
                 );
 
