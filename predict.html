@@ -1,0 +1,1259 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>HttpServer | 糖尿病预测</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Manrope:wght@400;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            :root {
+                --bg-1: #f8f3e8;
+                --bg-2: #dfe8f1;
+                --bg-3: #ffe1d0;
+                --ink: #1b1f2a;
+                --ink-soft: #4a5568;
+                --card: rgba(255, 255, 255, 0.74);
+                --line: rgba(27, 31, 42, 0.14);
+                --accent: #e4572e;
+                --accent-2: #197278;
+                --shadow: 0 18px 40px rgba(26, 32, 44, 0.14);
+                --radius-xl: 26px;
+                --radius-md: 14px;
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                min-height: 100vh;
+                color: var(--ink);
+                font-family:
+                    "Manrope", "PingFang SC", "Noto Sans SC", sans-serif;
+                background:
+                    radial-gradient(
+                        circle at 8% 12%,
+                        rgba(25, 114, 120, 0.24),
+                        transparent 36%
+                    ),
+                    radial-gradient(
+                        circle at 86% 10%,
+                        rgba(228, 87, 46, 0.21),
+                        transparent 30%
+                    ),
+                    linear-gradient(
+                        120deg,
+                        var(--bg-1),
+                        var(--bg-2) 52%,
+                        var(--bg-3)
+                    );
+                overflow-x: hidden;
+            }
+
+            .orb {
+                position: fixed;
+                border-radius: 50%;
+                filter: blur(1px);
+                pointer-events: none;
+                z-index: 0;
+                opacity: 0.6;
+                animation: float 9s ease-in-out infinite;
+            }
+
+            .orb.one {
+                width: 220px;
+                height: 220px;
+                left: -70px;
+                top: 24%;
+                background: rgba(25, 114, 120, 0.22);
+            }
+
+            .orb.two {
+                width: 280px;
+                height: 280px;
+                right: -110px;
+                top: 58%;
+                background: rgba(228, 87, 46, 0.22);
+                animation-delay: -3s;
+            }
+
+            .container {
+                max-width: 1120px;
+                margin: 0 auto;
+                padding: 24px 20px 44px;
+                position: relative;
+                z-index: 1;
+            }
+
+            header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+                padding: 10px 2px;
+                animation: reveal 0.8s ease both;
+            }
+
+            .logo {
+                font-family: "ZCOOL XiaoWei", serif;
+                font-size: 1.45rem;
+                letter-spacing: 1px;
+                color: var(--ink);
+                text-decoration: none;
+            }
+
+            .badge {
+                background: rgba(25, 114, 120, 0.1);
+                border: 1px solid rgba(25, 114, 120, 0.24);
+                color: #114e52;
+                border-radius: 999px;
+                padding: 7px 14px;
+                font-size: 0.82rem;
+                font-weight: 700;
+            }
+
+            .hero {
+                margin-top: 22px;
+                background: var(--card);
+                backdrop-filter: blur(8px);
+                border: 1px solid var(--line);
+                border-radius: var(--radius-xl);
+                box-shadow: var(--shadow);
+                padding: 28px;
+                animation: reveal 0.9s ease both;
+            }
+
+            .eyebrow {
+                display: inline-block;
+                background: rgba(228, 87, 46, 0.1);
+                color: #9e3517;
+                border-radius: 999px;
+                padding: 6px 12px;
+                font-size: 0.78rem;
+                letter-spacing: 0.03em;
+                font-weight: 700;
+            }
+
+            h1 {
+                margin-top: 14px;
+                font-size: clamp(1.8rem, 3.5vw, 2.7rem);
+                line-height: 1.1;
+                letter-spacing: -0.02em;
+            }
+
+            h1 span {
+                color: var(--accent-2);
+            }
+
+            .lead {
+                margin-top: 14px;
+                color: var(--ink-soft);
+                line-height: 1.7;
+                font-size: 0.96rem;
+                max-width: 70ch;
+            }
+
+            .panel-grid {
+                margin-top: 18px;
+                display: grid;
+                grid-template-columns: 1.15fr 0.85fr;
+                gap: 18px;
+            }
+
+            .card {
+                background: rgba(255, 255, 255, 0.72);
+                border: 1px solid var(--line);
+                border-radius: var(--radius-md);
+                box-shadow: 0 10px 24px rgba(26, 32, 44, 0.08);
+                padding: 18px;
+            }
+
+            .card h2 {
+                font-size: 1.06rem;
+                margin-bottom: 10px;
+            }
+
+            .hint {
+                color: var(--ink-soft);
+                font-size: 0.9rem;
+                line-height: 1.6;
+                margin-bottom: 12px;
+            }
+
+            .field-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 10px;
+            }
+
+            .field {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .field label {
+                font-size: 0.85rem;
+                font-weight: 700;
+                color: #2b3343;
+            }
+
+            .field input {
+                height: 40px;
+                border-radius: 10px;
+                border: 1px solid rgba(27, 31, 42, 0.22);
+                background: rgba(255, 255, 255, 0.92);
+                padding: 0 10px;
+                font-size: 16px;
+                color: #1f2937;
+                outline: none;
+                transition:
+                    border-color 0.18s ease,
+                    box-shadow 0.18s ease;
+            }
+
+            .field input:focus {
+                border-color: rgba(25, 114, 120, 0.55);
+                box-shadow: 0 0 0 3px rgba(25, 114, 120, 0.14);
+            }
+
+            .actions {
+                margin-top: 14px;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .btn {
+                border: none;
+                border-radius: 999px;
+                padding: 10px 16px;
+                font-weight: 700;
+                font-size: 0.92rem;
+                text-decoration: none;
+                transition:
+                    transform 0.2s ease,
+                    box-shadow 0.2s ease,
+                    background 0.2s ease;
+                cursor: pointer;
+            }
+
+            .btn:hover {
+                transform: translateY(-2px);
+            }
+
+            .btn-primary {
+                background: linear-gradient(110deg, #e4572e, #f0904a);
+                color: #fff;
+                box-shadow: 0 10px 22px rgba(228, 87, 46, 0.24);
+            }
+
+            .btn-secondary {
+                background: rgba(25, 114, 120, 0.1);
+                color: #114e52;
+                border: 1px solid rgba(25, 114, 120, 0.28);
+            }
+
+            .btn-ghost {
+                background: rgba(255, 255, 255, 0.86);
+                color: #1f2937;
+                border: 1px solid rgba(27, 31, 42, 0.18);
+            }
+
+            .status {
+                margin-top: 12px;
+                display: inline-flex;
+                align-items: center;
+                border-radius: 999px;
+                padding: 5px 10px;
+                font-size: 0.8rem;
+                font-weight: 700;
+                background: rgba(25, 114, 120, 0.1);
+                color: #0f646a;
+            }
+
+            .api-output {
+                margin-top: 12px;
+                border-radius: 12px;
+                border: 1px solid rgba(27, 31, 42, 0.12);
+                background: #fffdfa;
+                padding: 12px;
+                font-family:
+                    "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+                font-size: 0.85rem;
+                line-height: 1.6;
+                color: #273444;
+                min-height: 220px;
+                white-space: pre-wrap;
+                overflow: auto;
+                /* allow long JSON strings to wrap on small screens */
+                overflow-wrap: anywhere;
+                word-break: break-word;
+            }
+
+            .meta-list {
+                list-style: none;
+                display: grid;
+                gap: 8px;
+            }
+
+            .meta-list li {
+                border-radius: 10px;
+                border: 1px solid rgba(27, 31, 42, 0.12);
+                background: rgba(255, 255, 255, 0.8);
+                padding: 9px 10px;
+                font-size: 0.88rem;
+                color: #374151;
+            }
+
+            .meta-list code {
+                background: rgba(27, 31, 42, 0.04);
+                border-radius: 4px;
+                padding: 2px 6px;
+                font-family: inherit;
+            }
+
+            @keyframes reveal {
+                from {
+                    opacity: 0;
+                    transform: translateY(14px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            @keyframes float {
+                0%,
+                100% {
+                    transform: translateY(0);
+                }
+                50% {
+                    transform: translateY(-20px);
+                }
+            }
+
+            @media (max-width: 940px) {
+                .panel-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            @media (max-width: 620px) {
+                .container {
+                    padding: 18px 14px 28px;
+                }
+
+                .hero {
+                    border-radius: 18px;
+                    padding: 16px;
+                }
+
+                .field-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            /* Hero top layout: eyebrow + return button */
+            .hero-top {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 12px;
+            }
+
+            .hero-return {
+                margin-left: 12px;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 12px;
+                border-radius: 12px;
+                background: rgba(255, 255, 255, 0.94);
+                border: 1px solid rgba(27, 31, 42, 0.08);
+                box-shadow: 0 8px 20px rgba(26, 32, 44, 0.06);
+                color: var(--ink);
+                text-decoration: none;
+                transition:
+                    transform 0.16s ease,
+                    box-shadow 0.16s ease,
+                    background 0.16s ease;
+            }
+
+            .hero-return svg {
+                width: 16px;
+                height: 16px;
+                flex: none;
+            }
+            .hero-return span {
+                line-height: 1;
+                font-weight: 700;
+                font-size: 0.92rem;
+            }
+            .hero-return:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 14px 34px rgba(26, 32, 44, 0.12);
+            }
+            .hero-return:focus-visible {
+                outline: 3px solid rgba(25, 114, 120, 0.14);
+                outline-offset: 2px;
+            }
+
+            /* Hide any leftover ghost return button inside .actions when present */
+            .actions .btn-ghost[href="/index.html"] {
+                display: none;
+            }
+
+            @media (max-width: 620px) {
+                .hero-top {
+                    padding: 0 18px;
+                }
+                .hero-return {
+                    white-space: nowrap;
+                }
+            }
+
+            /* ===== Result Modal ===== */
+            .result-overlay {
+                position: fixed;
+                inset: 0;
+                z-index: 100;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+                background: rgba(10, 14, 26, 0.58);
+                backdrop-filter: blur(7px);
+                animation: fadeIn 0.28s ease both;
+            }
+
+            .result-overlay.hidden {
+                display: none;
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                }
+                to {
+                    opacity: 1;
+                }
+            }
+
+            .result-card {
+                background: rgba(255, 255, 255, 0.97);
+                border-radius: 28px;
+                box-shadow: 0 32px 72px rgba(10, 14, 26, 0.24);
+                padding: 38px 34px 32px;
+                max-width: 450px;
+                width: 100%;
+                position: relative;
+                text-align: center;
+                animation: cardIn 0.42s cubic-bezier(0.17, 0.67, 0.3, 1.2) both;
+                /* allow internal scrolling when viewport is small */
+                max-height: calc(100vh - 64px);
+                overflow: auto;
+            }
+
+            /* On small screens, show modal a bit lower and allow scrolling */
+            @media (max-width: 620px) {
+                .result-overlay {
+                    align-items: flex-start;
+                    padding-top: 28px;
+                    padding-bottom: 28px;
+                }
+                .result-card {
+                    border-radius: 18px;
+                    padding: 22px 18px;
+                    max-width: calc(100% - 32px);
+                    max-height: calc(100vh - 56px);
+                }
+            }
+
+            @keyframes cardIn {
+                from {
+                    opacity: 0;
+                    transform: scale(0.88) translateY(22px);
+                }
+                to {
+                    opacity: 1;
+                    transform: scale(1) translateY(0);
+                }
+            }
+
+            .result-close {
+                position: absolute;
+                top: 14px;
+                right: 16px;
+                background: rgba(27, 31, 42, 0.07);
+                border: none;
+                border-radius: 50%;
+                width: 34px;
+                height: 34px;
+                font-size: 1.25rem;
+                line-height: 1;
+                cursor: pointer;
+                color: #4a5568;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background 0.15s;
+            }
+            .result-close:hover {
+                background: rgba(27, 31, 42, 0.14);
+            }
+
+            .result-icon-wrap {
+                width: 76px;
+                height: 76px;
+                border-radius: 50%;
+                margin: 0 auto 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .result-icon-wrap.danger {
+                background: linear-gradient(
+                    135deg,
+                    rgba(228, 87, 46, 0.14),
+                    rgba(228, 87, 46, 0.28)
+                );
+                border: 2px solid rgba(228, 87, 46, 0.32);
+            }
+            .result-icon-wrap.safe {
+                background: linear-gradient(
+                    135deg,
+                    rgba(25, 114, 120, 0.14),
+                    rgba(25, 114, 120, 0.28)
+                );
+                border: 2px solid rgba(25, 114, 120, 0.32);
+            }
+
+            .result-title {
+                font-size: 1.6rem;
+                font-weight: 800;
+                letter-spacing: -0.02em;
+                margin-bottom: 7px;
+            }
+            .result-title.danger {
+                color: #b73a1a;
+            }
+            .result-title.safe {
+                color: #0e4f54;
+            }
+
+            .result-subtitle {
+                font-size: 0.89rem;
+                color: #6b7280;
+                margin-bottom: 24px;
+                line-height: 1.55;
+            }
+
+            .prob-ring-wrap {
+                position: relative;
+                width: 140px;
+                height: 140px;
+                margin: 0 auto 22px;
+            }
+            .prob-ring {
+                transform: rotate(-90deg);
+                width: 140px;
+                height: 140px;
+            }
+            .ring-bg {
+                fill: none;
+                stroke: rgba(27, 31, 42, 0.08);
+                stroke-width: 11;
+            }
+            .ring-fill {
+                fill: none;
+                stroke-width: 11;
+                stroke-linecap: round;
+                transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .ring-fill.danger {
+                stroke: url(#dangerGrad);
+            }
+            .ring-fill.safe {
+                stroke: url(#safeGrad);
+            }
+
+            .prob-center-text {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+            .prob-pct {
+                font-size: 1.9rem;
+                font-weight: 800;
+                line-height: 1;
+                letter-spacing: -0.03em;
+            }
+            .prob-pct.danger {
+                color: #c94a1f;
+            }
+            .prob-pct.safe {
+                color: #197278;
+            }
+            .prob-label {
+                font-size: 0.71rem;
+                color: #9ca3af;
+                margin-top: 3px;
+                font-weight: 600;
+            }
+
+            .risk-badge {
+                display: inline-block;
+                border-radius: 999px;
+                padding: 5px 20px;
+                font-size: 0.82rem;
+                font-weight: 700;
+                margin-bottom: 22px;
+            }
+            .risk-badge.danger {
+                background: rgba(228, 87, 46, 0.11);
+                color: #9e3517;
+                border: 1px solid rgba(228, 87, 46, 0.28);
+            }
+            .risk-badge.safe {
+                background: rgba(25, 114, 120, 0.1);
+                color: #0e4f54;
+                border: 1px solid rgba(25, 114, 120, 0.28);
+            }
+
+            .divider {
+                height: 1px;
+                background: rgba(27, 31, 42, 0.08);
+                margin: 0 0 18px;
+            }
+
+            .advice-wrap {
+                background: rgba(27, 31, 42, 0.03);
+                border-radius: 14px;
+                border: 1px solid rgba(27, 31, 42, 0.07);
+                padding: 14px 16px;
+                text-align: left;
+                margin-bottom: 22px;
+            }
+            .advice-wrap h4 {
+                font-size: 0.74rem;
+                font-weight: 700;
+                color: #9ca3af;
+                margin-bottom: 10px;
+                text-transform: uppercase;
+                letter-spacing: 0.07em;
+            }
+            .advice-list {
+                list-style: none;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            .advice-list li {
+                font-size: 0.85rem;
+                color: #374151;
+                line-height: 1.55;
+                display: flex;
+                gap: 8px;
+            }
+            .advice-list li::before {
+                content: "›";
+                font-size: 1.15rem;
+                line-height: 1.2;
+                flex-shrink: 0;
+                font-weight: 800;
+            }
+            .advice-list li.danger-item::before {
+                color: #e4572e;
+            }
+            .advice-list li.safe-item::before {
+                color: #197278;
+            }
+
+            .result-actions {
+                display: flex;
+                gap: 10px;
+                justify-content: center;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="orb one"></div>
+        <div class="orb two"></div>
+
+        <main class="container">
+            <header>
+                <a class="logo" href="/http_server.html">HttpServer</a>
+                <span class="badge">模型推理页面</span>
+            </header>
+
+            <section class="hero">
+                <div class="hero-top">
+                    <span class="eyebrow">POST /ml_predict</span>
+                    <a
+                        class="btn btn-ghost hero-return"
+                        href="/index.html"
+                        title="返回主页"
+                    >
+                        <svg
+                            aria-hidden="true"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                        <span>返回主页</span>
+                    </a>
+                </div>
+                <h1><span>Diabetes</span> 特征预测</h1>
+                <p class="lead">
+                    按照后端模型要求填写 8 个输入特征，页面会将数据按顺序组装为
+                    <code>features</code> 数组并发送到后端接口。
+                </p>
+
+                <div class="panel-grid">
+                    <section class="card" aria-label="predict form">
+                        <h2>输入特征</h2>
+                        <p class="hint">
+                            后端模型接受固定顺序: Pregnancies, Glucose,
+                            BloodPressure, SkinThickness, Insulin, BMI,
+                            DiabetesPedigreeFunction, Age
+                        </p>
+
+                        <form id="predict-form">
+                            <div class="field-grid">
+                                <div class="field">
+                                    <label for="pregnancies">Pregnancies</label>
+                                    <input
+                                        id="pregnancies"
+                                        name="pregnancies"
+                                        type="number"
+                                        step="1"
+                                        required
+                                    />
+                                </div>
+                                <div class="field">
+                                    <label for="glucose">Glucose</label>
+                                    <input
+                                        id="glucose"
+                                        name="glucose"
+                                        type="number"
+                                        step="0.01"
+                                        required
+                                    />
+                                </div>
+                                <div class="field">
+                                    <label for="blood-pressure"
+                                        >BloodPressure</label
+                                    >
+                                    <input
+                                        id="blood-pressure"
+                                        name="bloodPressure"
+                                        type="number"
+                                        step="0.01"
+                                        required
+                                    />
+                                </div>
+                                <div class="field">
+                                    <label for="skin-thickness"
+                                        >SkinThickness</label
+                                    >
+                                    <input
+                                        id="skin-thickness"
+                                        name="skinThickness"
+                                        type="number"
+                                        step="0.01"
+                                        required
+                                    />
+                                </div>
+                                <div class="field">
+                                    <label for="insulin">Insulin</label>
+                                    <input
+                                        id="insulin"
+                                        name="insulin"
+                                        type="number"
+                                        step="0.01"
+                                        required
+                                    />
+                                </div>
+                                <div class="field">
+                                    <label for="bmi">BMI</label>
+                                    <input
+                                        id="bmi"
+                                        name="bmi"
+                                        type="number"
+                                        step="0.01"
+                                        required
+                                    />
+                                </div>
+                                <div class="field">
+                                    <label for="dpf"
+                                        >DiabetesPedigreeFunction</label
+                                    >
+                                    <input
+                                        id="dpf"
+                                        name="dpf"
+                                        type="number"
+                                        step="0.0001"
+                                        required
+                                    />
+                                </div>
+                                <div class="field">
+                                    <label for="age">Age</label>
+                                    <input
+                                        id="age"
+                                        name="age"
+                                        type="number"
+                                        step="1"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="actions">
+                                <button class="btn btn-primary" type="submit">
+                                    发送预测请求
+                                </button>
+                                <button
+                                    class="btn btn-secondary"
+                                    type="button"
+                                    id="btn-example"
+                                >
+                                    填充示例数据
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <section class="card" aria-label="predict result">
+                        <h2>请求信息</h2>
+                        <ul class="meta-list">
+                            <li>接口: <code>POST /ml_predict</code></li>
+                            <li>
+                                请求头:
+                                <code>Content-Type: application/json</code>
+                            </li>
+                            <li>请求体: <code>{"features": [...]}</code></li>
+                        </ul>
+
+                        <span id="api-status" class="status">等待请求</span>
+                        <pre id="api-output" class="api-output">
+尚未发起请求</pre
+                        >
+                    </section>
+                </div>
+            </section>
+        </main>
+
+        <!-- Result Modal -->
+        <div
+            id="result-overlay"
+            class="result-overlay hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="result-title"
+        >
+            <div class="result-card">
+                <button
+                    class="result-close"
+                    id="result-close"
+                    aria-label="关闭"
+                >
+                    &#x2715;
+                </button>
+
+                <div class="result-icon-wrap" id="result-icon-wrap">
+                    <svg
+                        id="result-icon-svg"
+                        width="38"
+                        height="38"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    ></svg>
+                </div>
+
+                <h2 class="result-title" id="result-title"></h2>
+                <p class="result-subtitle" id="result-subtitle"></p>
+
+                <div class="prob-ring-wrap">
+                    <svg class="prob-ring" viewBox="0 0 140 140">
+                        <defs>
+                            <linearGradient
+                                id="dangerGrad"
+                                x1="0%"
+                                y1="0%"
+                                x2="100%"
+                                y2="0%"
+                            >
+                                <stop offset="0%" stop-color="#e4572e" />
+                                <stop offset="100%" stop-color="#f0904a" />
+                            </linearGradient>
+                            <linearGradient
+                                id="safeGrad"
+                                x1="0%"
+                                y1="0%"
+                                x2="100%"
+                                y2="0%"
+                            >
+                                <stop offset="0%" stop-color="#197278" />
+                                <stop offset="100%" stop-color="#2faf7e" />
+                            </linearGradient>
+                        </defs>
+                        <circle class="ring-bg" cx="70" cy="70" r="54" />
+                        <circle
+                            class="ring-fill"
+                            cx="70"
+                            cy="70"
+                            r="54"
+                            id="ring-fill"
+                        />
+                    </svg>
+                    <div class="prob-center-text">
+                        <span class="prob-pct" id="prob-pct">0%</span>
+                        <span class="prob-label">患病概率</span>
+                    </div>
+                </div>
+
+                <span class="risk-badge" id="risk-badge"></span>
+
+                <div class="divider"></div>
+
+                <div class="advice-wrap">
+                    <h4>临床建议</h4>
+                    <ul class="advice-list" id="advice-list"></ul>
+                </div>
+
+                <div class="result-actions">
+                    <button class="btn btn-ghost" id="result-close2">
+                        关闭
+                    </button>
+                    <button class="btn btn-primary" id="result-repredict">
+                        重新预测
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const outputEl = document.getElementById("api-output");
+            const statusEl = document.getElementById("api-status");
+            const formEl = document.getElementById("predict-form");
+            const exampleBtn = document.getElementById("btn-example");
+
+            const fieldIds = [
+                "pregnancies",
+                "glucose",
+                "blood-pressure",
+                "skin-thickness",
+                "insulin",
+                "bmi",
+                "dpf",
+                "age",
+            ];
+            const exampleFeatures = [6, 148, 72, 35, 0, 33.6, 0.627, 50];
+
+            // r=54  =>  C = 2π×54 ≈ 339.29
+            const RING_C = 2 * Math.PI * 54;
+
+            // 保存弹窗打开前的焦点，关闭时恢复；并在弹窗打开时锁定 body 滚动（移动端避免背景滚动/地址栏抖动）
+            let _prevFocus = null;
+            let _scrollY = 0;
+            let _prevBodyStyles = {};
+
+            function setStatus(text, isError = false) {
+                statusEl.textContent = text;
+                statusEl.style.background = isError
+                    ? "rgba(220,106,86,.15)"
+                    : "rgba(25,114,120,.1)";
+                statusEl.style.color = isError ? "#8b2b18" : "#0f646a";
+            }
+
+            function fillExampleValues() {
+                fieldIds.forEach((id, i) => {
+                    document.getElementById(id).value = String(
+                        exampleFeatures[i],
+                    );
+                });
+            }
+
+            function collectFeatures() {
+                return fieldIds.map((id) => {
+                    const v = Number(document.getElementById(id).value);
+                    if (!Number.isFinite(v))
+                        throw new Error(`字段 ${id} 输入无效`);
+                    return v;
+                });
+            }
+
+            /* -------- 诊断结果弹窗 -------- */
+            function showResult(data) {
+                const isDanger = data.label === 1;
+                const prob = data.probability;
+                const pct = Math.round(prob * 100);
+                const cls = isDanger ? "danger" : "safe";
+
+                // 图标
+                const iconWrap = document.getElementById("result-icon-wrap");
+                iconWrap.className = `result-icon-wrap ${cls}`;
+                const iconSvg = document.getElementById("result-icon-svg");
+                if (isDanger) {
+                    iconSvg.setAttribute("stroke", "#e4572e");
+                    iconSvg.innerHTML =
+                        '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>' +
+                        '<line x1="12" y1="9" x2="12" y2="13"/>' +
+                        '<line x1="12" y1="17" x2="12.01" y2="17"/>';
+                } else {
+                    iconSvg.setAttribute("stroke", "#197278");
+                    iconSvg.innerHTML =
+                        '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>' +
+                        '<polyline points="22 4 12 14.01 9 11.01"/>';
+                }
+
+                // 标题 & 副标题
+                const titleEl = document.getElementById("result-title");
+                titleEl.textContent = isDanger
+                    ? "糖尿病风险警示"
+                    : "检测结果正常";
+                titleEl.className = `result-title ${cls}`;
+                document.getElementById("result-subtitle").textContent =
+                    isDanger
+                        ? "模型检测到较高患病风险，请尽快咨询医生进行确诊"
+                        : "未检测到明显糖尿病风险，请保持健康生活方式";
+
+                // 圆环动画
+                const ring = document.getElementById("ring-fill");
+                ring.className = `ring-fill ${cls}`;
+                ring.style.strokeDasharray = RING_C;
+                ring.style.strokeDashoffset = RING_C; // 从 0 开始
+                requestAnimationFrame(() =>
+                    requestAnimationFrame(() => {
+                        ring.style.strokeDashoffset = RING_C * (1 - prob);
+                    }),
+                );
+
+                // 概率文字
+                const probEl = document.getElementById("prob-pct");
+                probEl.textContent = `${pct}%`;
+                probEl.className = `prob-pct ${cls}`;
+
+                // 风险标签
+                const badge = document.getElementById("risk-badge");
+                badge.textContent = isDanger
+                    ? pct >= 80
+                        ? "极高风险"
+                        : pct >= 60
+                          ? "高风险"
+                          : "中等风险"
+                    : pct >= 30
+                      ? "低风险"
+                      : "极低风险";
+                badge.className = `risk-badge ${cls}`;
+
+                // 临床建议
+                const items = isDanger
+                    ? [
+                          "建议尽快前往内分泌科进行空腹血糖及糖化血红蛋白 (HbA1c) 检查",
+                          "控制碳水化合物摄入，增加膳食纤维，严格减少精制糖与含糖饮料",
+                          "每周保持 150 分钟以上中等强度有氧运动（快走、游泳等）",
+                          "定期监测血压与体重，目标 BMI < 24，收缩压 < 130 mmHg",
+                      ]
+                    : [
+                          "保持均衡饮食，每年进行一次空腹血糖筛查",
+                          "维持规律的有氧运动习惯，保持健康体重（BMI 18.5–23.9）",
+                          "避免长期高糖、高脂饮食，减少久坐时间",
+                      ];
+                document.getElementById("advice-list").innerHTML = items
+                    .map((t) => `<li class="${cls}-item">${t}</li>`)
+                    .join("");
+
+                // 记录当前焦点并锁定背景滚动，避免移动端地址栏/视口抖动
+                try {
+                    _prevFocus = document.activeElement;
+                } catch (e) {
+                    _prevFocus = null;
+                }
+                // 如果当前有输入元素聚焦，先 blur，防止 iOS 在打开弹窗时放大视图
+                try {
+                    if (
+                        document.activeElement &&
+                        /INPUT|TEXTAREA/i.test(document.activeElement.tagName)
+                    ) {
+                        document.activeElement.blur();
+                    }
+                } catch (e) {}
+
+                // 更可靠的滚动锁定：记录滚动位置并将 body 设为 fixed
+                _scrollY = window.scrollY || window.pageYOffset || 0;
+                // 保存当前行内样式以便恢复，避免覆盖已有样式
+                _prevBodyStyles = {
+                    position: document.body.style.position || "",
+                    top: document.body.style.top || "",
+                    left: document.body.style.left || "",
+                    right: document.body.style.right || "",
+                };
+                document.body.style.position = "fixed";
+                document.body.style.top = `-${_scrollY}px`;
+                document.body.style.left = "0";
+                document.body.style.right = "0";
+                document
+                    .getElementById("result-overlay")
+                    .classList.remove("hidden");
+                // 将焦点移到弹窗的关闭按钮，便于键盘/屏幕阅读器操作
+                try {
+                    document.getElementById("result-close").focus();
+                } catch (e) {}
+            }
+
+            function closeResult() {
+                document
+                    .getElementById("result-overlay")
+                    .classList.add("hidden");
+                // 恢复 body 行内样式并回滚到先前位置
+                try {
+                    document.body.style.position = _prevBodyStyles.position;
+                    document.body.style.top = _prevBodyStyles.top;
+                    document.body.style.left = _prevBodyStyles.left;
+                    document.body.style.right = _prevBodyStyles.right;
+                    window.scrollTo(0, _scrollY || 0);
+                } catch (e) {}
+
+                // 将焦点回传给先前元素（若可用）
+                try {
+                    if (_prevFocus && typeof _prevFocus.focus === "function") {
+                        _prevFocus.focus();
+                    }
+                } catch (e) {}
+                _prevFocus = null;
+                _scrollY = 0;
+
+                formEl.reset();
+            }
+
+            document
+                .getElementById("result-close")
+                .addEventListener("click", () => {
+                    closeResult();
+                    formEl.reset();
+                    outputEl.textContent = "尚未发起请求";
+                    setStatus("等待请求");
+                });
+            document
+                .getElementById("result-close2")
+                .addEventListener("click", () => {
+                    closeResult();
+                    formEl.reset();
+                    outputEl.textContent = "尚未发起请求";
+                    setStatus("等待请求");
+                });
+            document
+                .getElementById("result-overlay")
+                .addEventListener("click", (e) => {
+                    if (e.target === e.currentTarget) closeResult();
+                });
+            document
+                .getElementById("result-repredict")
+                .addEventListener("click", () => {
+                    closeResult();
+                    formEl.reset();
+                    fillExampleValues();
+                    outputEl.textContent = "尚未发起请求";
+                    setStatus("等待请求");
+                });
+
+            /* -------- 预测请求 -------- */
+            async function runPredict(features) {
+                const payload = { features };
+                setStatus("请求中...");
+                outputEl.textContent = "";
+
+                try {
+                    const resp = await fetch("/ml_predict", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                    });
+
+                    const text = await resp.text();
+                    setStatus(`完成: ${resp.status} ${resp.statusText}`);
+                    // 尝试把后端返回的 JSON 格式化为多行，便于在移动端换行显示
+                    let formattedResp = text;
+                    try {
+                        const parsed = JSON.parse(text);
+                        formattedResp = JSON.stringify(parsed, null, 2);
+                    } catch (e) {
+                        // 非 JSON 响应则保留原始文本
+                    }
+
+                    outputEl.textContent = [
+                        "[POST /ml_predict]",
+                        "URL: /ml_predict",
+                        "METHOD: POST",
+                        `STATUS: ${resp.status} ${resp.statusText}`,
+                        "",
+                        "REQUEST:",
+                        JSON.stringify(payload, null, 2),
+                        "",
+                        "RESPONSE:",
+                        formattedResp,
+                    ].join("\n");
+
+                    try {
+                        const data = JSON.parse(text);
+                        if ("label" in data && "probability" in data)
+                            showResult(data);
+                    } catch (_) {}
+                } catch (err) {
+                    setStatus("请求失败", true);
+                    outputEl.textContent = [
+                        "[POST /ml_predict]",
+                        "URL: /ml_predict",
+                        "METHOD: POST",
+                        "",
+                        "ERROR:",
+                        err instanceof Error ? err.message : String(err),
+                    ].join("\n");
+                }
+            }
+
+            formEl.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                try {
+                    await runPredict(collectFeatures());
+                } catch (err) {
+                    setStatus("输入有误", true);
+                    outputEl.textContent =
+                        err instanceof Error ? err.message : String(err);
+                }
+            });
+
+            exampleBtn.addEventListener("click", () => {
+                fillExampleValues();
+                setStatus("示例数据已填充");
+            });
+
+            fillExampleValues();
+        </script>
+    </body>
+</html>
