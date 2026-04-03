@@ -8,6 +8,13 @@
     "r.sessionWatcher": true,
     "r.bracketedPaste": true,
     "editor.formatOnSave": false,
+    "editor.insertSpaces": true,
+    "editor.tabSize": 4,
+    "editor.detectIndentation": false,
+    "[r]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 4
+    },
     "code-runner.runInTerminal": true,
     "code-runner.executorMap": {
         "r": "& 'C:\\Program Files\\R\\R-4.5.3\\bin\\Rscript.exe'"
